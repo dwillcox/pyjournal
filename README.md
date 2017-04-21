@@ -8,6 +8,8 @@ short entry minimal.  Entries are shown in date-order, and any number
 of appendices can be added to the end of the journal.  The resulting
 PDF journal is searchable.
 
+Note: the current version of this works only for python 3
+
 * Installing:
 
   Simply clone the git repo and put the directory in your path.
@@ -151,6 +153,14 @@ PDF journal is searchable.
     pushes any changes in the local journal to the remote (git bare
     repo) version
  
+
+* Hashtags
+
+  A new latex command `\htag{name}` is introduced to put a hash
+  tag in the journal entry.  When you build the journal, there will
+  be an index of hash tags at the end of the journal with links
+  to the pages.  This can let you organize entries into topics.
+  
 
 * Appendices:
 

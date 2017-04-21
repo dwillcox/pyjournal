@@ -1,11 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 a simple commandline-driven scientific journal in LaTeX managed by git
 """
+
 from __future__ import print_function
+
 import argparse
-import ConfigParser
+try: import ConfigParser as configparser
+except ImportError:
+    import configparser
 import os
 import sys
 
@@ -14,7 +18,8 @@ import entry_util
 import git_util
 
 
-if __name__ == "__main__":
+def get_args():
+    """ parse the commandline arguments """
 
     # short circuit -- if there are no arguments, then we default to
     # entry, and we don't take any arguments, and we don't do an
@@ -24,11 +29,8 @@ if __name__ == "__main__":
         args = {"command": "entry",
                 "images": [],
                 "n": None}
-
     else:
-
         p = argparse.ArgumentParser()
-
         sp = p.add_subparsers(title="subcommands",
                               description="valid subcommands",
                               help="subcommands (use -h to see options for each)",
@@ -135,38 +137,59 @@ if __name__ == "__main__":
                                      help="the name of the journal",
                                      nargs=1, default=None, type=str)
 
-
         args = vars(p.parse_args())
 
+    return args
 
-    # parse the .pyjournalrc file -- store the results in a dictionary
-    # e.g., defs["nickname"]["working_path"]
+def read_config():
+    """ parse the .pyjournalrc file -- store the results in a dictionary
+        e.g., defs["nickname"]["working_path"] """
     defs = {}
     defs["param_file"] = os.path.expanduser("~") + "/.pyjournalrc"
     defs["image_dir"] = os.getcwd()
     defs["default_journal"] = None
-    
+
     if os.path.isfile(defs["param_file"]):
-        cp = ConfigParser.ConfigParser()
+        cp = configparser.ConfigParser()
         cp.optionxform = str
         cp.read(defs["param_file"])
 
         secs = cp.sections()
-        
+
         if "main" in secs:
             secs.remove("main")
             defs["default_journal"] = cp.get("main", "default_journal")
-            
+
         for sec in secs:
             defs[sec] = {}
             defs[sec]["working_path"] = cp.get(sec, "working_path")
             defs[sec]["master_repo"] = cp.get(sec, "master_repo")
 
+    return defs
+
+def set_default(name, param_file):
+    """ set the default in the config file """
+
+    if os.path.isfile(param_file):
+        cp = configparser.ConfigParser()
+        cp.optionxform = str
+        cp.read(param_file)
+
+        if not cp.has_section("main"):
+            cp.add_section("main")
+        cp.set("main", "default_journal", name)
+
+        with open(param_file, "w") as config_file:
+            cp.write(config_file)
+
+
+def main(args, defs):
+    """ main interface """
 
     action = args["command"]
 
-    if not (action == "init" or action == "connect"):
-        journals = defs.keys()
+    if action not in ["init", "connect"]:
+        journals = list(defs.keys())
         journals.remove("param_file")
         journals.remove("image_dir")
         journals.remove("default_journal")
@@ -176,9 +199,16 @@ if __name__ == "__main__":
                 default_nickname = journals[0]
             else:
                 default_nickname = defs["default_journal"]
-                
-    if action == "init":
 
+        if "n" in args:
+            if args["n"] is not None:
+                nickname = args["n"]
+            else:
+                nickname = default_nickname
+        else:
+            nickname = default_nickname
+
+    if action == "init":
         nickname = args["nickname"][0]
         master_path = args["master-path"][0]
 
@@ -192,105 +222,43 @@ if __name__ == "__main__":
         git_util.init(nickname, master_path, working_path, defs)
 
     elif action == "connect":
-
         master_repo = args["remote-git-repo"][0]
         working_path = args["working-path"][0]
-
         working_path = os.path.normpath(os.path.expanduser(working_path))
 
         git_util.connect(master_repo, working_path, defs)
 
     elif action == "entry":
-
         images = args["images"]
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         entry_util.entry(nickname, images, defs)
 
     elif action == "edit":
-
         # options: date-string
         date_string = args["date-time string"][0]
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         entry_util.edit(nickname, date_string, defs)
 
     elif action == "appendix":
-
         name = args["name"][0]
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         entry_util.appendix(nickname, name, defs)
 
-
     elif action == "list":
-
         # options: number to list (optional)
         num = args["N"]
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         entry_util.elist(nickname, num, defs)
 
-
     elif action == "build":
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         build_util.build(nickname, defs)
 
     elif action == "show":
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         build_util.build(nickname, defs, show=1)
 
     elif action == "pull":
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         git_util.pull(defs, nickname=nickname)
 
     elif action == "push":
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         git_util.push(defs, nickname=nickname)
 
     elif action == "status":
-
-        if not args["n"] == None:
-            nickname = args["n"]
-        else:
-            nickname = default_nickname
-
         apps = build_util.get_appendices(nickname, defs)
 
         if nickname in defs.keys():
@@ -310,15 +278,17 @@ if __name__ == "__main__":
             if k in ["main", "default_journal", "param_file", "image_dir"]:
                 continue
             print("  {}".format(k))
-                
+
     elif action == "make-default":
-        if not cp.has_section("main"):
-            cp.add_section("main")
-        cp.set("main", "default_journal", args["journal-name"][0])
-        with open(defs["param_file"], "w") as config_file:
-            cp.write(config_file)
-                
+        set_default(args["journal-name"][0], defs["param_file"])
+
     else:
         # we should never land here, because of the choices argument
         # to actions in the argparser
         sys.exit("invalid action")
+
+
+if __name__ == "__main__":
+    args = get_args()
+    defs = read_config()
+    main(args, defs)

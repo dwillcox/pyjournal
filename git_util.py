@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import os
 import re
 import sys
@@ -236,8 +237,7 @@ def pull(defs, nickname=None):
 
     stdout, stderr, rc = shell_util.run("git pull")
     if not rc == 0:
-        print(stdout)
-        print(stderr)
+        print(stdout, stderr)
         sys.exit("ERROR: something went wrong with the git pull")
 
     print(stdout)
