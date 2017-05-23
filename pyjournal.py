@@ -199,7 +199,10 @@ def main(args, defs):
                 default_nickname = journals[0]
             else:
                 default_nickname = defs["default_journal"]
-
+        else:
+            print('No journals in ~/.pyjournalrc')
+            exit()
+            
         if "n" in args:
             if args["n"] is not None:
                 nickname = args["n"]
