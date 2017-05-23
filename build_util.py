@@ -84,10 +84,14 @@ def build(nickname, defs, show=0):
                 tmd = stripextension(t) + '.md'
                 if not os.path.isfile(os.path.join(app_dir, tmd)):
                     ttex = t
+                else:
+                    continue
             elif t.endswith(".md"):
                 # Process Markdown with Pandoc to LaTeX
                 tpath = os.path.join(app_dir, t)
                 ttex = os.path.basename(md_to_tex(tpath))
+            else:
+                continue
             f.write("\\input{{entries/appendices/{}}}\n\n".format(ttex))
     f.close()
 
