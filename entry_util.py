@@ -5,6 +5,8 @@ import hashlib
 import os
 import shutil
 import sys
+import re
+from math import ceil, log10
 
 import shell_util
 from build_util import stripextension
@@ -174,10 +176,18 @@ def entry(nickname, images, defs, fmt='.tex', string=None):
 
 
 def edit(nickname, date_string, defs):
-
+    integerre = re.compile('[0-9]*')
+    
     if date_string == "last":
         last = elist(nickname, 1, defs, print_out=False)
         date_string = last[0][0]
+    elif integerre.fullmatch(date_string):
+        last_entries = elist(nickname, -1, defs, print_out=False)
+        nstring = int(date_string)
+        if nstring < len(last_entries):
+            date_string  = last_entries[nstring][0]
+        else:
+            sys.exit("Invalid entry index {}. Number of entries is {}".format(nstring, len(last_entries)))
 
     # find the file corresponding to the date string
     entry_dir = "{}/journal-{}/entries/".format(defs[nickname]["working_path"], nickname)
@@ -294,13 +304,21 @@ def elist(nickname, num, defs, print_out=True):
     e.sort(reverse=True)
 
     last_entries = []
+    if num == -1:
+        num = len(e)
     for n in range(min(num, len(e))):
         entry_id = stripextension(e[n])
         last_entries.append((entry_id, entries[e[n]]))
 
     if print_out:
-        for e in last_entries:
-            print("{} : {}".format(e[0], e[1]))
+        if len(last_entries) > 0:
+            ndigits = int(ceil(log10(len(last_entries))))
+        else:
+            ndigits = 0
+        ndigits = max(1, ndigits)
+        for i, e in enumerate(last_entries):
+            sfmt = "{:" + str(ndigits) + "} : {} : {}"            
+            print(sfmt.format(i, e[0], e[1]))
     else:
         return last_entries
 
