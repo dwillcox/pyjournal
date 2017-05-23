@@ -143,7 +143,8 @@ def entry(nickname, images, defs, string=None):
             prog = "{} {}/{}".format(editor, odir, ofile)
 
         stdout, stderr, rc = shell_util.run(prog)
-
+        if stderr:
+            print(stderr)
 
     # did the user actually make edits?
     hash_new = hashlib.md5(open(odir + ofile, 'r').read().encode('utf-8')).hexdigest()
