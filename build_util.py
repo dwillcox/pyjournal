@@ -5,6 +5,12 @@ import sys
 
 import shell_util
 
+def stripextension(fpath):
+    """
+    Given a file name, strip the extension and return its base name.
+    """
+    return '.'.join(os.path.basename(fpath).split('.')[:-1])
+
 def get_appendices(nickname, defs):
 
     app_dir = "{}/journal-{}/entries/appendices/".format(defs[nickname]["working_path"], nickname)
@@ -12,10 +18,23 @@ def get_appendices(nickname, defs):
     app = []
     if os.path.isdir(app_dir):
         for t in os.listdir(app_dir):
-            if t.endswith(".tex"):
-                app.append(t.split(".")[0])
+            if t.endswith(".tex") or t.endswith(".md"):
+                app.append(stripextension(t))
     return app
 
+def md_to_tex(mdpath):
+    """
+    Given a path specifying a markdown file, use pandoc to
+    generate a tex file by the same name (modulo extension)
+    in the same directory for building the journal.
+    Returns the path of the new tex file.
+    """
+    tbase = stripextension(mdpath)
+    ttex  = tbase + '.tex'
+    ftex  = os.path.join(os.path.dirname(mdpath), ttex)
+    cmd   = "pandoc --from=markdown --output={} {}".format(ftex, mdpath)
+    shell_util.run(cmd)
+    return ftex
 
 def build(nickname, defs, show=0):
 
@@ -60,8 +79,16 @@ def build(nickname, defs, show=0):
     if os.path.isdir(app_dir):
         for t in os.listdir(app_dir):
             if t.endswith(".tex"):
-                f.write("\\input{{entries/appendices/{}}}\n\n".format(t))
-
+                # Find out if there is a markdown file by the same base-name
+                # and if there is, then defer to it.
+                tmd = stripextension(t) + '.md'
+                if not os.path.isfile(os.path.join(app_dir, tmd)):
+                    ttex = t
+            elif t.endswith(".md"):
+                # Process Markdown with Pandoc to LaTeX
+                tpath = os.path.join(app_dir, t)
+                ttex = os.path.basename(md_to_tex(tpath))
+            f.write("\\input{{entries/appendices/{}}}\n\n".format(ttex))
     f.close()
 
 
@@ -87,7 +114,16 @@ def build(nickname, defs, show=0):
             tex = []
             for t in os.listdir(e):
                 if t.endswith(".tex"):
-                    tex.append(t)
+                    # Find out if there is a markdown file by the same base-name
+                    # and if there is, then defer to it.
+                    tmd = stripextension(t) + '.md'
+                    if not os.path.isfile(os.path.join(os.getcwd(), e, tmd)):
+                        tex.append(t)
+                elif t.endswith(".md"):
+                    # Use Pandoc to convert Markdown to LaTeX
+                    tpath = os.path.join(os.getcwd(), e, t)
+                    ftex  = md_to_tex(tpath)
+                    tex.append(os.path.basename(ftex))
 
             tex.sort()
             for t in tex:
