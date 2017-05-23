@@ -84,9 +84,6 @@ def entry(nickname, images, defs, string=None):
 
     if string is not None:
         f.write(string)
-    else:
-        f.write("% journal: {}\n".format(nickname))
-
 
     # if there are images, then copy them over and add the figure
     # headings to the entry
@@ -125,9 +122,6 @@ def entry(nickname, images, defs, string=None):
         for l in figure_str.split("\n"):
             f.write("{}\n".format(
                 l.replace("@figname@", fname).replace("@figlabel@", im0).rstrip()))
-
-    # add the entry id as a LaTeX comment
-    f.write("\n\n% entry: {}".format(entry_id))
 
     f.close()
 
@@ -215,7 +209,6 @@ def edit(nickname, date_string, defs):
     except:
         sys.exit("ERROR: unable to open {}".format(file))
 
-    f.write("\n\n% entry edited: {}".format(entry_id))
     f.close()
 
     if editor == "emacs":
@@ -259,7 +252,6 @@ def appendix(nickname, name, defs):
 
     entry_id = get_entry_string()
 
-    f.write("\n\n% entry edited: {}".format(entry_id))
     f.close()
 
     if editor == "emacs":
