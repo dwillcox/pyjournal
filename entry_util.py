@@ -7,6 +7,7 @@ import shutil
 import sys
 
 import shell_util
+from build_util import stripextension
 
 figure_str = r"""
 \begin{figure}[h]
@@ -54,7 +55,7 @@ def get_dir_string():
     return str(now)
 
 
-def entry(nickname, images, defs, string=None):
+def entry(nickname, images, defs, fmt='.tex', string=None):
 
     try: editor = os.environ["EDITOR"]
     except:
@@ -63,7 +64,7 @@ def entry(nickname, images, defs, string=None):
     # determine the filename
     entry_id = get_entry_string()
     entry_dir = get_dir_string()
-    ofile = entry_id + ".tex"
+    ofile = entry_id + fmt
 
     # determine the directory we place it in -- this is the form yyyy-mm-dd/
     odir = "{}/journal-{}/entries/{}/".format(defs[nickname]["working_path"],
@@ -193,10 +194,14 @@ def edit(nickname, date_string, defs):
     if not os.path.isdir(d):
         sys.exit("entry directory does not exist")
 
-    file = "{}/{}_{}.tex".format(d, d, t)
+    # Look for a Markdown file for the entry,
+    # then a LaTeX file if it does not exist.
+    file = "{}/{}_{}.md".format(d, d, t)
 
     if not os.path.isfile(file):
-        sys.exit("entry {} does not exist".format(file))
+        file = "{}/{}_{}.tex".format(d, d, t)
+        if not os.path.isfile(file):
+            sys.exit("entry {} does not exist".format(file))
 
     # open the file for appending
     try: editor = os.environ["EDITOR"]
@@ -222,7 +227,7 @@ def edit(nickname, date_string, defs):
     stdout, stderr, rc = shell_util.run("git commit -m 'edited entry' " + file)
 
 
-def appendix(nickname, name, defs):
+def appendix(nickname, name, defs, fmt='.tex'):
 
     # is there an appendix directory?
     app_dir = "{}/journal-{}/entries/appendices/".format(
@@ -235,11 +240,17 @@ def appendix(nickname, name, defs):
 
     os.chdir(app_dir)
 
-    # edit the file, create if it does not exist
-    file = "{}.tex".format(name)
+    # Look for a Markdown file for the appendix,
+    # then a LaTeX file if it does not exist.
+    file = "{}.md".format(name)
 
     if not os.path.isfile(file):
-        warning("appendix {} will be created".format(name))
+        file = "{}.tex".format(name)
+        if not os.path.isfile(file):
+            warning("appendix {} will be created".format(name))
+    
+    # edit the file, create if it does not exist
+    file = "{}{}".format(name, fmt)
 
     # open the file for appending
     try: editor = os.environ["EDITOR"]
@@ -276,7 +287,7 @@ def elist(nickname, num, defs, print_out=True):
             edir = os.path.normpath("{}/{}".format(entry_dir, d))
 
             for t in os.listdir(edir):
-                if t.endswith(".tex") and not "appendices" in edir:
+                if t.endswith(".tex") or t.endswith(".md") and not "appendices" in edir:
                     entries[t] = "{}/{}".format(edir, t)
 
     e = list(entries.keys())
@@ -284,8 +295,7 @@ def elist(nickname, num, defs, print_out=True):
 
     last_entries = []
     for n in range(min(num, len(e))):
-        idx = e[n].rfind(".tex")
-        entry_id = e[n][:idx]
+        entry_id = stripextension(e[n])
         last_entries.append((entry_id, entries[e[n]]))
 
     if print_out:

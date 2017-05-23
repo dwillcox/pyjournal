@@ -65,6 +65,8 @@ def get_args():
         entry_ps.add_argument("-n", metavar="nickname",
                               help="nickname of the journal",
                               type=str, default=None)
+        entry_ps.add_argument("-md", help="Create markdown file instead of TeX",
+                              action='store_true')
 
         # the edit command
         edit_ps = sp.add_parser("edit",
@@ -129,6 +131,8 @@ def get_args():
         app_ps.add_argument("name",
                              help="the name of the appendix to edit",
                              nargs=1, default=None, type=str)
+        app_ps.add_argument("-md", help="Create markdown file instead of TeX",
+                              action='store_true')
 
         # the make-default command
         make_default_ps = sp.add_parser("make-default",
@@ -200,8 +204,7 @@ def main(args, defs):
             else:
                 default_nickname = defs["default_journal"]
         else:
-            print('No journals in ~/.pyjournalrc')
-            exit()
+            sys.exit('No journals in ~/.pyjournalrc')
             
         if "n" in args:
             if args["n"] is not None:
@@ -233,7 +236,12 @@ def main(args, defs):
 
     elif action == "entry":
         images = args["images"]
-        entry_util.entry(nickname, images, defs)
+        usemd  = args["md"]
+        if usemd:
+            fmt = '.md'
+        else:
+            fmt = '.tex'
+        entry_util.entry(nickname, images, defs, fmt=fmt)
 
     elif action == "edit":
         # options: date-string
@@ -242,7 +250,12 @@ def main(args, defs):
 
     elif action == "appendix":
         name = args["name"][0]
-        entry_util.appendix(nickname, name, defs)
+        usemd  = args["md"]
+        if usemd:
+            fmt = '.md'
+        else:
+            fmt = '.tex'
+        entry_util.appendix(nickname, name, defs, fmt=fmt)
 
     elif action == "list":
         # options: number to list (optional)
