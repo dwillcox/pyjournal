@@ -55,6 +55,9 @@ journal_master = r"""
 \renewcommand{\captionlabelfont}{\footnotesize}
 \setlength{\captionmargin}{3em}
 
+% for processing Pandoc output
+\def\tightlist{}
+
 \newcommand{\htag}[1]{\index{{\tt \##1}}{\tt \##1}}
 
 \begin{document}
